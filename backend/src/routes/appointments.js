@@ -11,6 +11,40 @@ const prisma = new PrismaClient();
 
 const HOLD_MINUTES = parseInt(process.env.SLOT_HOLD_MINUTES || '8', 10);
 
+// ─── GET /api/appointments/my — patient's own appointments ───────────────────
+// NOTE: must be declared before /:id to avoid route shadowing
+router.get('/my', authenticateToken, requireRole('patient'), async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: { patientId: req.user.userId },
+      include: { doctor: { select: { id: true, name: true, specialization: true } } },
+      orderBy: { slotStartTime: 'desc' },
+    });
+    return res.json(appointments);
+  } catch (err) {
+    console.error('Get patient appointments error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── GET /api/appointments/doctor/mine — doctor's own appointments ────────────
+router.get('/doctor/mine', authenticateToken, requireRole('doctor'), async (req, res) => {
+  try {
+    const doctorRecord = await prisma.doctor.findFirst({ where: { userId: req.user.userId } });
+    if (!doctorRecord) return res.status(404).json({ error: 'Doctor profile not found' });
+
+    const appointments = await prisma.appointment.findMany({
+      where: { doctorId: doctorRecord.id, status: { in: ['confirmed', 'completed'] } },
+      include: { patient: { select: { id: true, name: true, email: true } } },
+      orderBy: { slotStartTime: 'asc' },
+    });
+    return res.json(appointments);
+  } catch (err) {
+    console.error('Get doctor appointments error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ─── GET /api/doctors/:id/slots?date= ────────────────────────────────────────
 router.get(
   '/doctors/:id/slots',
@@ -370,39 +404,6 @@ router.get('/:id/summary', authenticateToken, async (req, res) => {
     return res.json(appt);
   } catch (err) {
     console.error('Get summary error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// GET /api/appointments/my — patient's own appointments
-router.get('/my', authenticateToken, requireRole('patient'), async (req, res) => {
-  try {
-    const appointments = await prisma.appointment.findMany({
-      where: { patientId: req.user.userId },
-      include: { doctor: { select: { id: true, name: true, specialization: true } } },
-      orderBy: { slotStartTime: 'desc' },
-    });
-    return res.json(appointments);
-  } catch (err) {
-    console.error('Get patient appointments error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// GET /api/appointments/doctor/mine — doctor's own appointments
-router.get('/doctor/mine', authenticateToken, requireRole('doctor'), async (req, res) => {
-  try {
-    const doctorRecord = await prisma.doctor.findFirst({ where: { userId: req.user.userId } });
-    if (!doctorRecord) return res.status(404).json({ error: 'Doctor profile not found' });
-
-    const appointments = await prisma.appointment.findMany({
-      where: { doctorId: doctorRecord.id, status: { in: ['confirmed', 'completed'] } },
-      include: { patient: { select: { id: true, name: true, email: true } } },
-      orderBy: { slotStartTime: 'asc' },
-    });
-    return res.json(appointments);
-  } catch (err) {
-    console.error('Get doctor appointments error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
