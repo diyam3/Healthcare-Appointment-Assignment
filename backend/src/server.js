@@ -4,8 +4,15 @@ const app = require('./app');
 
 const PORT = process.env.PORT || 3001;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Healthcare Appointment API running on port ${PORT}`);
+  // Start background workers (non-blocking — failures are logged, not thrown)
+  try {
+    const { startWorkers } = require('./jobs/startWorkers');
+    await startWorkers();
+  } catch (err) {
+    console.warn('Background workers could not start (Redis may be unavailable):', err.message);
+  }
 });
 
 // Graceful shutdown

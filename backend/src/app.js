@@ -3,7 +3,11 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const express = require('express');
 const cors = require('cors');
 
-const authRouter = require('./routes/auth');
+const authRouter        = require('./routes/auth');
+const adminRouter       = require('./routes/admin');
+const doctorsRouter     = require('./routes/doctors');
+const appointmentsRouter = require('./routes/appointments');
+const oauthRouter       = require('./routes/oauth');
 
 const app = express();
 
@@ -16,7 +20,11 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Routes
-app.use('/api/auth', authRouter);
+app.use('/api/auth',         authRouter);
+app.use('/api/admin',        adminRouter);
+app.use('/api/doctors',      doctorsRouter);
+app.use('/api/appointments', appointmentsRouter);
+app.use('/api/oauth',        oauthRouter);
 
 // 404 handler
 app.use((req, res) => {
