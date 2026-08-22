@@ -23,7 +23,7 @@ const worker = new Worker(
     const { to, subject, html, recipientId, type } = job.data;
     const transport = createTransport();
 
-    await transport.sendMail({ from: process.env.SMTP_USER, to, subject, html });
+    await transport.sendMail({ from: process.env.EMAIL_FROM || process.env.SMTP_USER, to, subject, html });
 
     // Mark reminder as sent in DB if linked to a reminder row
     if (job.data.reminderId) {

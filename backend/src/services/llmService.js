@@ -69,6 +69,14 @@ async function _callProvider(prompt) {
     return completion.choices[0].message.content;
   }
 
+  if (LLM_PROVIDER === 'gemini') {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(LLM_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  }
+
   throw new Error(`Unknown LLM provider: ${LLM_PROVIDER}`);
 }
 

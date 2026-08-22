@@ -23,7 +23,7 @@ const worker = new Worker(
     const transport = createTransport();
 
     try {
-      await transport.sendMail({ from: process.env.SMTP_USER, to, subject, html });
+      await transport.sendMail({ from: process.env.EMAIL_FROM || process.env.SMTP_USER, to, subject, html });
       // Update log to sent
       await prisma.notificationLog.updateMany({
         where: { userId: recipientId, type, status: 'pending' },
