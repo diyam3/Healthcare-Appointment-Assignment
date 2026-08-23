@@ -44,7 +44,8 @@ router.get('/google/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    return res.send(`<p>Google OAuth denied: ${error}. <a href="http://localhost:5173">Back to app</a></p>`);
+    const appUrl = process.env.APP_FRONTEND_URL || 'http://localhost:5173';
+    return res.send(`<p>Google OAuth denied: ${error}. <a href="${appUrl}">Back to app</a></p>`);
   }
   if (!code) {
     return res.status(400).send('<p>Missing authorization code.</p>');
@@ -64,7 +65,7 @@ router.get('/google/callback', async (req, res) => {
       <html><body style="font-family:sans-serif;padding:40px;max-width:500px;margin:auto">
         <h2>&#x2705; Google Calendar connected!</h2>
         <p>Your Google Calendar is now linked. Future appointments will automatically appear in your calendar.</p>
-        <p><a href="http://localhost:5173/patient/appointments">Back to My Appointments</a></p>
+        <p><a href="${process.env.APP_FRONTEND_URL || 'http://localhost:5173'}/patient/appointments">Back to My Appointments</a></p>
       </body></html>
     `);
   } catch (err) {
