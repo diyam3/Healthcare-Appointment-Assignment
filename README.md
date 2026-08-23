@@ -2,15 +2,22 @@
 
 A multi-tenant healthcare appointment platform with Patient, Doctor, and Admin portals. Supports concurrency-safe slot booking, AI-generated visit summaries, email notifications with retry, and Google Calendar sync.
 
+## Live Demo
+
+| | URL |
+|---|---|
+| **Frontend** | https://healthcare-appointment-assignment.vercel.app |
+| **Backend API** | https://healthcare-appointment-c067.onrender.com |
+
 ## Tech Stack
 
 - **Backend**: Node.js + Express
 - **Database**: PostgreSQL + Prisma ORM
 - **Auth**: JWT + bcrypt
 - **Queue/Jobs**: BullMQ + Redis
-- **Email**: Nodemailer (SMTP)
+- **Email**: Nodemailer (SMTP via SendGrid)
 - **Calendar**: Google Calendar API (OAuth 2.0)
-- **LLM**: Anthropic Claude (configurable)
+- **LLM**: Google Gemini (`gemini-3.6-flash`, configurable via `LLM_PROVIDER`)
 - **Frontend**: React + Vite + Tailwind CSS
 
 ## Setup
@@ -122,9 +129,11 @@ Respond ONLY with valid JSON. Clinical notes: <notes>
 2. Create a project → Enable **Google Calendar API**
 3. OAuth consent screen → Add scope: `https://www.googleapis.com/auth/calendar.events`
 4. Create OAuth 2.0 Client ID (Web application)
-5. Add Authorized redirect URI: `http://localhost:3001/api/oauth/google/callback`
+5. Add **Authorized redirect URIs**:
+   - Local dev: `http://localhost:3001/api/oauth/google/callback`
+   - Production: `https://healthcare-appointment-c067.onrender.com/api/oauth/google/callback`
 6. Copy Client ID and Secret to `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
-7. Users connect by hitting `GET /api/oauth/google` (returns auth URL) then completing the flow
+7. Users connect by navigating to `GET /api/oauth/google?token=<jwt>` in their browser — they are redirected to Google's consent screen and back automatically
 
 ## Roles
 
