@@ -1,17 +1,40 @@
 'use strict';
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 const { getAuthUrl, handleOAuthCallback } = require('../services/calendarService');
 
 const router = express.Router();
 
-// GET /api/oauth/google
-// Patient/doctor calls this while logged in. We embed userId in the OAuth
-// state param so the callback can identify the user without a JWT.
-router.get('/google', authenticateToken, (req, res) => {
+/**
+ * Validate JWT from either Authorization header OR ?token= query param.
+ * Used only for the OAuth initiation route where browser navigation
+ * can't carry custom headers.
+ */
+function authenticateTokenFlexible(req, res, next) {
+  const headerToken = req.headers['authorization']?.startsWith('Bearer ')
+    ? req.headers['authorization'].slice(7)
+    : null;
+  const token = headerToken || req.query.token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { userId: decoded.userId, role: decoded.role };
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
+  }
+}
+
+// GET /api/oauth/google?token=<jwt>
+// Accepts JWT as query param so it works as a direct browser URL.
+// Embeds userId in the OAuth state param — no JWT needed on the callback.
+router.get('/google', authenticateTokenFlexible, (req, res) => {
   const state = Buffer.from(JSON.stringify({ userId: req.user.userId })).toString('base64');
   const url = getAuthUrl(state);
-  // Redirect directly so the user doesn't have to copy-paste the URL
   res.redirect(url);
 });
 
@@ -37,10 +60,9 @@ router.get('/google/callback', async (req, res) => {
 
   try {
     await handleOAuthCallback(code, userId);
-    // Redirect back to the app with a success message
     res.send(`
-      <html><body style="font-family:sans-serif;padding:40px">
-        <h2>✅ Google Calendar connected!</h2>
+      <html><body style="font-family:sans-serif;padding:40px;max-width:500px;margin:auto">
+        <h2>&#x2705; Google Calendar connected!</h2>
         <p>Your Google Calendar is now linked. Future appointments will automatically appear in your calendar.</p>
         <p><a href="http://localhost:5173/patient/appointments">Back to My Appointments</a></p>
       </body></html>
