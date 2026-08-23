@@ -45,4 +45,8 @@ worker.on('failed', (job, err) => {
   console.error(`Reminder job ${job.id} failed:`, err.message);
 });
 
+worker.on('error', (err) => {
+  console.error('Reminder worker error:', err.message);
+});
+
 module.exports = worker;

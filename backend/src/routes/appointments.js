@@ -241,6 +241,44 @@ router.post(
         console.warn('Calendar event creation failed:', e.message);
       }
 
+      // Schedule appointment reminder N hours before visit (non-blocking)
+      try {
+        const REMINDER_HOURS = parseInt(process.env.REMINDER_HOURS_BEFORE || '24', 10);
+        const slotTime = new Date(appointment.slotStartTime);
+        const remindAt = new Date(slotTime.getTime() - REMINDER_HOURS * 3600 * 1000);
+        const delayMs = remindAt.getTime() - Date.now();
+
+        if (delayMs > 0) {
+          // Create a reminder row
+          const reminder = await prisma.reminder.create({
+            data: {
+              appointmentId: appointment.id,
+              userId: appointment.patientId,
+              type: 'appointment',
+              scheduledAt: remindAt,
+            },
+          });
+
+          // Enqueue the reminder email with a delay
+          const { reminderQueue } = require('../jobs/queues');
+          await reminderQueue.add(
+            'reminder',
+            {
+              type: 'reminder',
+              reminderId: reminder.id,
+              to: appointment.patient.email,
+              subject: 'Appointment Reminder',
+              html: `<p>Hi ${appointment.patient.name},</p><p>Reminder: You have an appointment with Dr. ${appointment.doctor.name} at <strong>${slotTime.toUTCString()}</strong>.</p>`,
+              recipientId: appointment.patientId,
+            },
+            { delay: delayMs, attempts: 3, backoff: { type: 'exponential', delay: 60000 } }
+          );
+          console.log(`Reminder scheduled for ${remindAt.toISOString()} (in ${Math.round(delayMs / 3600000)}h)`);
+        }
+      } catch (e) {
+        console.warn('Reminder scheduling failed:', e.message);
+      }
+
       return res.status(201).json({ appointment: { ...appointment, preVisitSummary } });
     } catch (err) {
       if (err.statusCode) {

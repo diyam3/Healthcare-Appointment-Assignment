@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "migrate": "prisma migrate dev",
+    "migrate": "prisma migrate dev --schema ./prisma/schema.prisma",
     "seed": "node prisma/seed.js",
     "test": "jest"
   },
@@ -27,7 +27,8 @@
     "dotenv": "^16.4.1",
     "cors": "^2.8.5",
     "express-validator": "^7.0.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3",

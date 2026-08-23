@@ -32,4 +32,8 @@ worker.on('failed', (job, err) => {
   console.error('Hold expiry sweep failed:', err.message);
 });
 
+worker.on('error', (err) => {
+  console.error('Hold expiry worker error:', err.message);
+});
+
 module.exports = { worker, scheduleHoldExpirySweeper };

@@ -51,4 +51,8 @@ worker.on('failed', (job, err) => {
   console.error(`Email job ${job.id} failed after ${job.attemptsMade} attempts:`, err.message);
 });
 
+worker.on('error', (err) => {
+  console.error('Email worker error:', err.message);
+});
+
 module.exports = worker;

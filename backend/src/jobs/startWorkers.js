@@ -5,11 +5,17 @@ async function startWorkers() {
   try {
     require('./workers/emailWorker');
     require('./workers/reminderWorker');
-    const { worker: holdWorker, scheduleHoldExpirySweeper } = require('./workers/holdExpiryWorker');
-    await scheduleHoldExpirySweeper();
+
+    try {
+      const { scheduleHoldExpirySweeper } = require('./workers/holdExpiryWorker');
+      await scheduleHoldExpirySweeper();
+    } catch (redisErr) {
+      console.warn('Hold expiry sweeper could not start (Redis unavailable):', redisErr.message);
+    }
+
     console.log('All background workers started');
   } catch (err) {
-    console.error('Failed to start workers:', err.message);
+    console.warn('Background workers could not start:', err.message);
   }
 }
 
