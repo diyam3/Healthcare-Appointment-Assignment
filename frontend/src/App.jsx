@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -16,9 +17,18 @@ import AdminLeave from './pages/admin/AdminLeave';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: { fontSize: '14px', borderRadius: '10px', maxWidth: '380px' },
+          success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#dc2626', secondary: '#fff' } },
+        }}
+      />
+      <main className="max-w-5xl mx-auto px-4 py-8">
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />

@@ -1,51 +1,58 @@
 import { useState } from 'react';
+import { CalendarOff } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../api/axios';
-import { getUser } from '../../utils/auth';
 
 export default function DoctorLeave() {
-  const user = getUser();
   const [leaveDate, setLeaveDate] = useState('');
   const [reason, setReason] = useState('');
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true); setError(''); setResult(null);
+    setLoading(true);
     try {
-      // We need the doctor ID; fetch it from the API
       const { data: doctorData } = await api.get('/doctors/my');
       const { data } = await api.post(`/doctors/${doctorData.id}/leave`, { leaveDate, reason });
-      setResult(data);
+      toast.success(`Leave marked. ${data.cancelledAppointments} appointment(s) cancelled and patients notified.`);
+      setLeaveDate('');
+      setReason('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to mark leave');
+      toast.error(err.response?.data?.message || 'Failed to mark leave');
     } finally { setLoading(false); }
   }
 
   return (
     <div className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Mark Leave Day</h1>
-      {result && <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded mb-4 text-sm">
-        Leave marked. {result.cancelledAppointments} appointment(s) cancelled and patients notified.
-      </div>}
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded p-3 mb-4 text-sm">{error}</div>}
-      <form onSubmit={handleSubmit} className="bg-white rounded shadow p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Leave Date</label>
-          <input type="date" required value={leaveDate} onChange={e => setLeaveDate(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+          <CalendarOff size={18} className="text-amber-600" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
-          <input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Personal leave"
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+          <h1 className="page-title">Mark Leave Day</h1>
+          <p className="text-slate-500 text-sm">Patients with confirmed slots will be notified</p>
         </div>
-        <button type="submit" disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50">
-          {loading ? 'Marking…' : 'Mark Leave'}
-        </button>
-      </form>
+      </div>
+
+      <div className="card p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Leave Date <span className="text-red-500">*</span></label>
+            <input type="date" required value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="input" />
+          </div>
+          <div>
+            <label className="label">Reason <span className="text-slate-400 font-normal">(optional)</span></label>
+            <input value={reason} onChange={e => setReason(e.target.value)}
+              placeholder="e.g. Personal leave, Medical conference…" className="input" />
+          </div>
+          <button type="submit" disabled={loading || !leaveDate}
+            className="btn-primary w-full flex justify-center items-center gap-2 py-2.5">
+            {loading
+              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Marking…</>
+              : 'Mark Leave'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

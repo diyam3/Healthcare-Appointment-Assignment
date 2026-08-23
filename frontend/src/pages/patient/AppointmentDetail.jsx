@@ -1,69 +1,95 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, User, Clock, Activity, Pill } from 'lucide-react';
 import api from '../../api/axios';
+import { SkeletonList } from '../../components/Skeleton';
+import { PreVisitCard, PostVisitCard } from '../../components/SummaryCard';
+
+const STATUS_CONFIG = {
+  confirmed:            { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Confirmed'          },
+  completed:            { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Completed'          },
+  held:                 { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Pending'            },
+  cancelled_by_patient: { bg: 'bg-red-100',    text: 'text-red-700',    label: 'Cancelled'          },
+  cancelled_by_leave:   { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Cancelled by Leave' },
+};
 
 export default function AppointmentDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [appt, setAppt] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/appointments/${id}/summary`).then(r => setAppt(r.data)).catch(console.error).finally(() => setLoading(false));
+    api.get(`/appointments/${id}/summary`)
+      .then(r => setAppt(r.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <p className="text-gray-500">Loading…</p>;
-  if (!appt) return <p className="text-red-500">Appointment not found.</p>;
+  if (loading) return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <SkeletonList count={3} />
+    </div>
+  );
 
-  const pre = appt.preVisitSummary;
-  const post = appt.postVisitSummary;
+  if (!appt) return (
+    <div className="max-w-2xl mx-auto card p-10 text-center">
+      <p className="text-slate-500">Appointment not found.</p>
+    </div>
+  );
+
+  const cfg = STATUS_CONFIG[appt.status] || { bg: 'bg-slate-100', text: 'text-slate-600', label: appt.status };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-gray-800">Appointment Detail</h1>
-      <div className="bg-white rounded shadow p-5">
-        <p><strong>Doctor:</strong> Dr. {appt.doctor?.name} ({appt.doctor?.specialization})</p>
-        <p><strong>Time:</strong> {new Date(appt.slotStartTime).toLocaleString()}</p>
-        <p><strong>Status:</strong> {appt.status.replace(/_/g, ' ')}</p>
+      <button onClick={() => navigate('/patient/appointments')}
+        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors">
+        <ArrowLeft size={15} /> Back to Appointments
+      </button>
+
+      <h1 className="page-title">Appointment Detail</h1>
+
+      {/* Summary card */}
+      <div className="card p-5 space-y-3">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <User size={16} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800">Dr. {appt.doctor?.name}</p>
+              <p className="text-sm text-blue-600">{appt.doctor?.specialization}</p>
+            </div>
+          </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-600 pt-1 border-t border-slate-100">
+          <Clock size={13} className="text-slate-400" />
+          {new Date(appt.slotStartTime).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {' at '}
+          {new Date(appt.slotStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
 
-      {pre && (pre.status === 'llm_failed'
-        ? <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded text-sm">
-            <strong>AI pre-visit summary unavailable.</strong><br/>
-            <p className="mt-1 whitespace-pre-wrap">{pre.raw}</p>
-          </div>
-        : <div className="bg-blue-50 border border-blue-200 p-4 rounded">
-            <p className="font-semibold text-blue-800 mb-2">Pre-Visit Summary</p>
-            <p className="text-sm"><span className={`inline-block px-2 py-0.5 rounded text-white text-xs font-bold mr-2 ${pre.urgency_level === 'High' ? 'bg-red-500' : pre.urgency_level === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'}`}>{pre.urgency_level}</span>{pre.chief_complaint}</p>
-            {pre.suggested_questions?.length > 0 && <ul className="text-sm mt-2 list-disc list-inside text-blue-900">{pre.suggested_questions.map((q, i) => <li key={i}>{q}</li>)}</ul>}
-          </div>
-      )}
-
-      {post && (post.status === 'llm_failed'
-        ? <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded text-sm">
-            <strong>AI post-visit summary unavailable.</strong><br/>
-            <p className="mt-1 whitespace-pre-wrap">{post.raw}</p>
-          </div>
-        : <div className="bg-green-50 border border-green-200 p-4 rounded">
-            <p className="font-semibold text-green-800 mb-2">Post-Visit Summary</p>
-            <p className="text-sm text-green-900">{post.summary_text}</p>
-            {post.medication_schedule?.length > 0 && <>
-              <p className="font-medium text-green-800 mt-3 mb-1">Medication Schedule</p>
-              <ul className="text-sm list-disc list-inside text-green-900">
-                {post.medication_schedule.map((m, i) => <li key={i}>{m.medication} — {m.dose}, {m.frequency} for {m.duration}</li>)}
-              </ul>
-            </>}
-            {post.follow_up_steps?.length > 0 && <>
-              <p className="font-medium text-green-800 mt-3 mb-1">Follow-up Steps</p>
-              <ol className="text-sm list-decimal list-inside text-green-900">{post.follow_up_steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
-            </>}
-          </div>
-      )}
+      <PreVisitCard summary={appt.preVisitSummary} />
+      <PostVisitCard summary={appt.postVisitSummary} />
 
       {appt.prescriptions?.length > 0 && (
-        <div className="bg-white rounded shadow p-5">
-          <p className="font-semibold mb-2">Prescriptions</p>
-          <ul className="text-sm space-y-1">
-            {appt.prescriptions.map(rx => <li key={rx.id} className="text-gray-700">{rx.drugName} — {rx.dosage}, {rx.frequency}, {rx.durationDays} days</li>)}
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Pill size={15} className="text-slate-500" />
+            <p className="section-title">Prescriptions</p>
+          </div>
+          <ul className="space-y-2">
+            {appt.prescriptions.map(rx => (
+              <li key={rx.id} className="flex items-start gap-2 text-sm bg-slate-50 rounded-lg px-3 py-2">
+                <Activity size={13} className="text-slate-400 mt-0.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-slate-800">{rx.drugName}</span>
+                  <span className="text-slate-500"> — {rx.dosage}, {rx.frequency}, {rx.durationDays} day{rx.durationDays !== 1 ? 's' : ''}</span>
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
       )}
