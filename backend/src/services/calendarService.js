@@ -61,13 +61,15 @@ async function storeRefreshToken(userId, refreshToken) {
 
 /**
  * Generate the Google OAuth authorization URL.
+ * @param {string} [state] - optional base64-encoded state to round-trip through OAuth
  */
-function getAuthUrl() {
+function getAuthUrl(state) {
   const oAuth2Client = createOAuth2Client();
   return oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: ['https://www.googleapis.com/auth/calendar.events'],
+    ...(state ? { state } : {}),
   });
 }
 
