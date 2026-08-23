@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Home from './pages/Home';
 import DoctorSearch from './pages/patient/DoctorSearch';
 import BookAppointment from './pages/patient/BookAppointment';
 import PatientAppointments from './pages/patient/PatientAppointments';
@@ -30,7 +31,7 @@ export default function App() {
       />
       <main className="max-w-5xl mx-auto px-4 py-8">
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
